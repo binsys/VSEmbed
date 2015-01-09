@@ -43,16 +43,12 @@ namespace VSEmbed.Roslyn {
 				Type.GetType("Microsoft.VisualStudio.LanguageServices.CSharp.ProjectSystemShim.CSharpProject, Microsoft.VisualStudio.LanguageServices.CSharp")
 			);
 
-		static readonly Type commandHandlerServiceFactoryType = Type.GetType("Microsoft.CodeAnalysis.Editor.ICommandHandlerServiceFactory, Microsoft.CodeAnalysis.EditorFeatures");
-
-		static readonly MethodInfo mefGetServiceCHSFMethod = typeof(IComponentModel).GetMethod("GetService").MakeGenericMethod(commandHandlerServiceFactoryType);
-
 		public RoslynKeyProcessor(IWpfTextView wpfTextView, IComponentModel mef) {
 			this.wpfTextView = wpfTextView;
 			innerCommandTarget = CreateInstanceNonPublic(oleCommandTargetType,
 				CreateInstanceNonPublic(languageServiceType, Activator.CreateInstance(packageType, true)),	// languageService
 				wpfTextView,										// wpfTextView
-				mefGetServiceCHSFMethod.Invoke(mef, null),			// commandHandlerServiceFactory
+				mef.DefaultExportProvider.GetExport<object>("Microsoft.CodeAnalysis.Editor.ICommandHandlerServiceFactory").Value,			// commandHandlerServiceFactory
 				null,												// featureOptionsService (not used)
 				mef.GetService<IVsEditorAdaptersFactoryService>()	// editorAdaptersFactoryService
 			);
@@ -170,7 +166,7 @@ namespace VSEmbed.Roslyn {
 
 	[Export(typeof(IChainedKeyProcessorProvider))]
 	[TextViewRole(PredefinedTextViewRoles.Interactive)]
-	[ContentType("text")]
+	[ContentType("Roslyn Languages")]
 	[Order(Before = "Standard KeyProcessor")]
 	[Name("Roslyn KeyProcessor")]
 	sealed class RoslynKeyProcessorProvider : IChainedKeyProcessorProvider {
